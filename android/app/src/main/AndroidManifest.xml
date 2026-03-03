@@ -25,7 +25,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- WAJIB v2 embedding -->
             <meta-data
                 android:name="flutterEmbedding"
                 android:value="2" />
