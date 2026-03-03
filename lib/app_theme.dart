@@ -1,55 +1,80 @@
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const navy = Color(0xFF0B1B3A);
-  static const navy2 = Color(0xFF102B5A);
+  // Navy utama
+  static const Color navy = Color(0xFF0B1F3B);
 
   static ThemeData light() {
-    final cs = ColorScheme.fromSeed(
-      seedColor: navy,
-      brightness: Brightness.light,
-    );
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      colorScheme: cs,
-      scaffoldBackgroundColor: cs.surface,
-      appBarTheme: AppBarTheme(
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        centerTitle: false,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(seedColor: navy),
+    );
+
+    return base.copyWith(
+      appBarTheme: const AppBarTheme(
+        backgroundColor: navy,
+        foregroundColor: Colors.white,
+        centerTitle: true,
       ),
-      cardTheme: CardTheme(
-        color: cs.surface,
+      // ✅ Flutter terbaru: butuh CardThemeData
+      cardTheme: const CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
       ),
+      scaffoldBackgroundColor: const Color(0xFFF7F9FC),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: navy, width: 1.6),
+        ),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   static ThemeData dark() {
-    final cs = ColorScheme.fromSeed(
-      seedColor: navy2,
-      brightness: Brightness.dark,
-    );
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      colorScheme: cs,
-      scaffoldBackgroundColor: cs.surface,
-      appBarTheme: AppBarTheme(
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        centerTitle: false,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: navy,
+        brightness: Brightness.dark,
       ),
-      cardTheme: CardTheme(
-        color: cs.surface,
+    );
+
+    return base.copyWith(
+      appBarTheme: const AppBarTheme(
+        backgroundColor: navy,
+        foregroundColor: Colors.white,
+        centerTitle: true,
+      ),
+      // ✅ Flutter terbaru: CardThemeData
+      cardTheme: const CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      scaffoldBackgroundColor: const Color(0xFF071427),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
