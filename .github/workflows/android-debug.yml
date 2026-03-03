@@ -26,30 +26,59 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # ✅ Build via Gradle (lebih reliable daripada flutter build apk di kasus lu)
-      - name: Build Debug APK (Gradle)
-        run: |
-          cd android
-          chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+      # ✅ flutter build kamu sering exit 1 karena "apk not found" walau BUILD SUCCESSFUL
+      # jadi kita izinin step ini gagal tapi lanjut.
+      - name: Build debug APK (allow fail)
+        continue-on-error: true
+        run: flutter build apk --debug -v
 
-      # ✅ Cari APK hasil build
-      - name: Locate APK
+      - name: Locate APK (manual)
+        shell: bash
         run: |
-          echo "Searching APK..."
-          find . -type f -name "*.apk" -print
+          set -e
 
-          APK="$(find . -type f -path "*app/build/outputs/apk/debug/*.apk" | head -n 1)"
+          echo "Searching for APK files..."
+          find . -type f -name "*.apk" -print || true
+
+          # lokasi umum output (Flutter + Gradle)
+          CANDIDATES=(
+            "build/app/outputs/flutter-apk/app-debug.apk"
+            "build/app/outputs/apk/debug/app-debug.apk"
+            "android/app/build/outputs/apk/debug/app-debug.apk"
+          )
+
+          APK=""
+          for p in "${CANDIDATES[@]}"; do
+            if [ -f "$p" ]; then
+              APK="$p"
+              break
+            fi
+          done
+
+          # kalau belum ketemu, cari dari mana aja
           if [ -z "$APK" ]; then
-            APK="$(find . -type f -name "*.apk" | head -n 1)"
+            APK="$(find . -type f -path "*outputs*apk*debug*.apk" | head -n 1 || true)"
           fi
 
           if [ -z "$APK" ]; then
-            echo "APK not found"
+            APK="$(find . -type f -name "*.apk" | head -n 1 || true)"
+          fi
+
+          if [ -z "$APK" ]; then
+            echo "❌ APK not found anywhere."
+            echo "Dumping useful dirs:"
+            ls -lah || true
+            ls -lah build || true
+            ls -lah build/app || true
+            ls -lah build/app/outputs || true
+            ls -lah android || true
+            ls -lah android/app || true
+            ls -lah android/app/build || true
+            ls -lah android/app/build/outputs || true
             exit 1
           fi
 
-          echo "FOUND: $APK"
+          echo "✅ Found APK: $APK"
           mkdir -p artifacts
           cp "$APK" artifacts/yinn-zivpn-manager-debug.apk
           echo "APK_OUT=artifacts/yinn-zivpn-manager-debug.apk" >> $GITHUB_ENV
