@@ -7,7 +7,7 @@
         android:icon="@mipmap/ic_launcher">
 
         <activity
-            android:name="com.yinnstore.zivpnmanager.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -21,8 +21,8 @@
                 android:resource="@style/NormalTheme" />
 
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
@@ -30,4 +30,5 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+
 </manifest>
