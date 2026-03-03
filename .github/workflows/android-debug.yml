@@ -2,20 +2,34 @@ name: Android Debug APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+    steps:
+      - name: Checkout (retry)
+        uses: nick-invision/retry@v3
         with:
-          distribution: temurin
-          java-version: "17"
+          timeout_minutes: 10
+          max_attempts: 6
+          retry_wait_seconds: 20
+          command: |
+            rm -rf repo && mkdir repo
+            git init repo
+            cd repo
+            git remote add origin https://github.com/${{ github.repository }}.git
+            git fetch --depth=1 origin ${{ github.ref_name }}
+            git checkout FETCH_HEAD
+
+      - name: Move repo to workspace
+        run: |
+          shopt -s dotglob
+          rm -rf ./* ./.??* || true
+          mv repo/* .
+          rm -rf repo
 
       - uses: subosito/flutter-action@v2
         with:
