@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace "com.yinnstore.zivpnmanager"
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.yinnstore.zivpnmanager"
         minSdk 21
-        targetSdk 34
+        targetSdk 36
         versionCode 1
         versionName "0.0.1"
     }
@@ -27,7 +27,6 @@ android {
 
     buildTypes {
         release {
-            // lu minta debug build aja, tapi ini tetep aman biar gradle gak rewel
             signingConfig signingConfigs.debug
         }
     }
