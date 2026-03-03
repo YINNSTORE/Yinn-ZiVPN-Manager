@@ -26,30 +26,32 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build debug APK (verbose)
-        run: flutter build apk --debug -v
-
-      - name: Locate APK
-        shell: bash
+      # ✅ Build via Gradle (lebih reliable daripada flutter build apk di kasus lu)
+      - name: Build Debug APK (Gradle)
         run: |
-          set -e
-          echo "Searching for APK files..."
-          find . -type f -name "*.apk" -print || true
+          cd android
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace
 
-          APK_PATH="$(find . -type f -name "*.apk" | head -n 1)"
-          if [ -z "$APK_PATH" ]; then
-            echo "NO_APK_FOUND=true" >> $GITHUB_ENV
-            echo "No APK found. Listing build dirs for debugging:"
-            ls -lah
-            ls -lah build || true
-            ls -lah build/app || true
-            ls -lah build/app/outputs || true
+      # ✅ Cari APK hasil build
+      - name: Locate APK
+        run: |
+          echo "Searching APK..."
+          find . -type f -name "*.apk" -print
+
+          APK="$(find . -type f -path "*app/build/outputs/apk/debug/*.apk" | head -n 1)"
+          if [ -z "$APK" ]; then
+            APK="$(find . -type f -name "*.apk" | head -n 1)"
+          fi
+
+          if [ -z "$APK" ]; then
+            echo "APK not found"
             exit 1
           fi
 
-          echo "Found APK: $APK_PATH"
+          echo "FOUND: $APK"
           mkdir -p artifacts
-          cp "$APK_PATH" artifacts/yinn-zivpn-manager-debug.apk
+          cp "$APK" artifacts/yinn-zivpn-manager-debug.apk
           echo "APK_OUT=artifacts/yinn-zivpn-manager-debug.apk" >> $GITHUB_ENV
 
       - name: Upload artifact
