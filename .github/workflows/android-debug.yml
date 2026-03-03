@@ -10,26 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (retry)
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 6
-          retry_wait_seconds: 20
-          command: |
-            rm -rf repo && mkdir repo
-            git init repo
-            cd repo
-            git remote add origin https://github.com/${{ github.repository }}.git
-            git fetch --depth=1 origin ${{ github.ref_name }}
-            git checkout FETCH_HEAD
-
-      - name: Move repo to workspace
+      - name: Checkout (retry loop)
+        shell: bash
         run: |
+          set -euo pipefail
+
+          echo "Repo: $GITHUB_REPOSITORY"
+          echo "Ref : $GITHUB_REF_NAME"
+
+          # clean workspace biar gak konflik
           shopt -s dotglob
           rm -rf ./* ./.??* || true
-          mv repo/* .
-          rm -rf repo
+
+          # retry fetch karena GitHub suka 500
+          for i in {1..8}; do
+            echo "Attempt $i/8: git init + fetch"
+            git init .
+            git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git" || true
+
+            # fetch branch / ref_name (main)
+            if git -c protocol.version=2 fetch --no-tags --prune --depth=1 origin "${GITHUB_REF_NAME}"; then
+              git checkout -f FETCH_HEAD
+              echo "Checkout OK"
+              break
+            fi
+
+            echo "Fetch failed. Sleeping..."
+            sleep 20
+            rm -rf .git
+            if [ "$i" -eq 8 ]; then
+              echo "Checkout failed after 8 attempts"
+              exit 1
+            fi
+          done
 
       - uses: subosito/flutter-action@v2
         with:
