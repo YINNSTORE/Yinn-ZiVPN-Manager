@@ -10,39 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (retry loop)
-        shell: bash
-        run: |
-          set -euo pipefail
+      - uses: actions/checkout@v4
 
-          echo "Repo: $GITHUB_REPOSITORY"
-          echo "Ref : $GITHUB_REF_NAME"
-
-          # clean workspace biar gak konflik
-          shopt -s dotglob
-          rm -rf ./* ./.??* || true
-
-          # retry fetch karena GitHub suka 500
-          for i in {1..8}; do
-            echo "Attempt $i/8: git init + fetch"
-            git init .
-            git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git" || true
-
-            # fetch branch / ref_name (main)
-            if git -c protocol.version=2 fetch --no-tags --prune --depth=1 origin "${GITHUB_REF_NAME}"; then
-              git checkout -f FETCH_HEAD
-              echo "Checkout OK"
-              break
-            fi
-
-            echo "Fetch failed. Sleeping..."
-            sleep 20
-            rm -rf .git
-            if [ "$i" -eq 8 ]; then
-              echo "Checkout failed after 8 attempts"
-              exit 1
-            fi
-          done
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -52,11 +26,34 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Build debug APK (verbose)
+        run: flutter build apk --debug -v
+
+      - name: Locate APK
+        shell: bash
+        run: |
+          set -e
+          echo "Searching for APK files..."
+          find . -type f -name "*.apk" -print || true
+
+          APK_PATH="$(find . -type f -name "*.apk" | head -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "NO_APK_FOUND=true" >> $GITHUB_ENV
+            echo "No APK found. Listing build dirs for debugging:"
+            ls -lah
+            ls -lah build || true
+            ls -lah build/app || true
+            ls -lah build/app/outputs || true
+            exit 1
+          fi
+
+          echo "Found APK: $APK_PATH"
+          mkdir -p artifacts
+          cp "$APK_PATH" artifacts/yinn-zivpn-manager-debug.apk
+          echo "APK_OUT=artifacts/yinn-zivpn-manager-debug.apk" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: yinn-zivpn-manager-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: ${{ env.APK_OUT }}
