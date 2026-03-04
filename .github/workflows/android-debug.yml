@@ -26,13 +26,13 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      # ✅ flutter build kamu sering exit 1 karena "apk not found" walau BUILD SUCCESSFUL
-      # jadi kita izinin step ini gagal tapi lanjut.
-      - name: Build debug APK (allow fail)
+      # ✅ split-per-abi biar ukuran kecil (jadi beberapa APK: arm64, armeabi, x86_64)
+      # ✅ continue-on-error karena kadang Flutter ngeluh "apk not found" walau build sukses
+      - name: Build debug APK (split ABI, allow fail)
         continue-on-error: true
-        run: flutter build apk --debug -v
+        run: flutter build apk --debug --split-per-abi -v
 
-      - name: Locate APK (manual)
+      - name: Locate APKs (manual)
         shell: bash
         run: |
           set -e
@@ -40,32 +40,22 @@ jobs:
           echo "Searching for APK files..."
           find . -type f -name "*.apk" -print || true
 
-          # lokasi umum output (Flutter + Gradle)
-          CANDIDATES=(
-            "build/app/outputs/flutter-apk/app-debug.apk"
-            "build/app/outputs/apk/debug/app-debug.apk"
-            "android/app/build/outputs/apk/debug/app-debug.apk"
-          )
+          mkdir -p artifacts
 
-          APK=""
-          for p in "${CANDIDATES[@]}"; do
-            if [ -f "$p" ]; then
-              APK="$p"
-              break
-            fi
-          done
+          # Ambil semua debug APK yang kebentuk (split ABI)
+          mapfile -t APK_LIST < <(find . -type f \( \
+              -path "*build/app/outputs/flutter-apk/*debug*.apk" -o \
+              -path "*build/app/outputs/apk/debug/*debug*.apk" -o \
+              -path "*android/app/build/outputs/apk/debug/*debug*.apk" \
+            \) 2>/dev/null)
 
-          # kalau belum ketemu, cari dari mana aja
-          if [ -z "$APK" ]; then
-            APK="$(find . -type f -path "*outputs*apk*debug*.apk" | head -n 1 || true)"
+          # fallback: ambil APK apa aja kalau pola di atas gak nemu
+          if [ "${#APK_LIST[@]}" -eq 0 ]; then
+            mapfile -t APK_LIST < <(find . -type f -name "*debug*.apk" 2>/dev/null)
           fi
 
-          if [ -z "$APK" ]; then
-            APK="$(find . -type f -name "*.apk" | head -n 1 || true)"
-          fi
-
-          if [ -z "$APK" ]; then
-            echo "❌ APK not found anywhere."
+          if [ "${#APK_LIST[@]}" -eq 0 ]; then
+            echo "❌ No APK found anywhere."
             echo "Dumping useful dirs:"
             ls -lah || true
             ls -lah build || true
@@ -78,13 +68,17 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Found APK: $APK"
-          mkdir -p artifacts
-          cp "$APK" artifacts/yinn-zivpn-manager-debug.apk
-          echo "APK_OUT=artifacts/yinn-zivpn-manager-debug.apk" >> $GITHUB_ENV
+          echo "✅ Found ${#APK_LIST[@]} APK(s):"
+          printf '%s\n' "${APK_LIST[@]}"
 
-      - name: Upload artifact
+          # Copy semua APK ke artifacts/ biar gampang download
+          for apk in "${APK_LIST[@]}"; do
+            base="$(basename "$apk")"
+            cp "$apk" "artifacts/$base"
+          done
+
+      - name: Upload artifact (all APKs)
         uses: actions/upload-artifact@v4
         with:
           name: yinn-zivpn-manager-debug-apk
-          path: ${{ env.APK_OUT }}
+          path: artifacts/*.apk
